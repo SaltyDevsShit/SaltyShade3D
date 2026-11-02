@@ -20,6 +20,24 @@ Optional: `Update-SaltyShade.bat -InstallSchedule` also checks for updates every
 
 Needs: Windows, git, Python 3 and Rust. `-InstallRust` installs Rust; Visual Studio C++ build tools are used if you have them.
 
+## Importing materials
+
+**Assets > Materials > Import** (or **File > Import material...**) adds a material as a fill layer
+with an image per channel:
+
+- **Texture sets**: a folder, a `.zip` or loose images from ambientCG, Poly Haven, Poliigon,
+  Substance exports and the like. Base color, normal, roughness (or glossiness, inverted),
+  metallic, height, AO, opacity and emissive maps are recognised by name, and each can be
+  reassigned. DirectX normals are flipped to OpenGL.
+- **Substance `.sbsar`**: the window shows the material's thumbnail, author, presets and every
+  parameter. **Render and add fill layer** runs Adobe's `sbsrender` with your settings, then
+  imports the maps. A `.sbsar` holds a compiled graph that only Adobe's Substance engine can run,
+  so this needs Substance 3D Designer or the Substance 3D Automation Toolkit installed (found
+  automatically, or via **Locate sbsrender.exe...**, or `SALTYSHADE_SBSRENDER`). Without it, the window
+  says so and offers the texture-set import instead.
+
+The code is `overlay/files/crates/ui-egui/src/saltyshade_import.rs`.
+
 ## Sharing it: installer and auto-updates for other people
 
 Send people the newest `SaltyShade3D-<version>-Setup.exe` from your GitHub repo's **Releases**
