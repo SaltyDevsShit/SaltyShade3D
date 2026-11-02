@@ -1,8 +1,6 @@
 # SaltyShade 3D
 
-Your own build of [TextureCraft](https://github.com/storytold/texturecraft) (open-source 3D texture
-painter, MIT OR Apache-2.0), with the **Neon Cyber-Studio** look and SaltyShade 3D branding. It keeps
-itself up to date with TextureCraft on GitHub, and your design is re-applied on every update.
+
 
 ## Use it
 
