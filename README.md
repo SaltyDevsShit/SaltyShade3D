@@ -67,37 +67,6 @@ The installer isn't code-signed, so Windows SmartScreen shows "Windows protected
 time someone runs it (More info > Run anyway). Silent updates after that don't show it. A
 code-signing certificate removes the warning.
 
-## How your design survives updates
-
-```
-overlay/            YOUR DESIGN: the updater never changes this folder
-  files/            new files dropped into TextureCraft (the theme module saltyshade.rs)
-  assets/           logo.png (transparent), logo-glow.png, icons/, saltyshade.ico, source/
-  rules.json        small, targeted edits to TextureCraft's code (hooks, rename, gizmo, masks)
-tools/
-  updater.ps1       fetch -> reset upstream/ to the newest commit -> apply overlay -> build -> swap
-  apply_overlay.py  lays overlay/ over a fresh upstream checkout
-  make_logo.py      re-cuts the transparent logo and icons from overlay/assets/source/
-upstream/           pristine TextureCraft clone (managed by the updater: don't edit)
-dist/               SaltyShade3D.exe
-state/              last applied commit, update.log
-```
-
-Every update starts from an **untouched** copy of TextureCraft, then applies your overlay, so
-there are never merge conflicts. If TextureCraft changes code that a *required* rule
-hooks into, or the build fails, the update stops, your current `SaltyShade3D.exe` keeps working, and
-`state/update.log` says which rule needs adjusting. Cosmetic rules that stop matching are skipped
-with a warning.
-
-## Changing the design
-
-- Colours and glow: edit `overlay/files/crates/ui-egui/src/saltyshade.rs` (`OBSIDIAN #0b0914`,
-  `VIOLET #9d4edd`, `CYAN #00f5d4`, gizmo axis colours, glass transparency).
-- Logo: replace `overlay/assets/source/logo-source.jpg`, run `python tools/make_logo.py`.
-- Then run `Update-SaltyShade.bat`: edits to `overlay/` trigger a rebuild even when
-  TextureCraft hasn't changed.
-
-The Brightness and Accent settings inside the app are overridden by the Neon Cyber-Studio theme.
 
 ## Credits
 
