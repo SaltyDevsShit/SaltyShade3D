@@ -38,7 +38,7 @@ jobs:
       run:
         shell: pwsh
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -74,7 +74,7 @@ jobs:
 
       - name: Build cache
         if: steps.check.outputs.skip != 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
@@ -103,7 +103,7 @@ jobs:
         run: |
           $v = "${{ steps.pack.outputs.version }}"
           $notes = @"
-          SaltyShade 3D $v: TextureCraft ``$("${{ steps.check.outputs.sha }}".Substring(0,7))`` with the SaltyShade 3D design.
+          SaltyShade 3D ${v}: TextureCraft ``$("${{ steps.check.outputs.sha }}".Substring(0,7))`` with the SaltyShade 3D design.
 
           **New here?** Download ``SaltyShade3D-$v-Setup.exe`` below and run it. Already installed? It updates itself the next time you open it.
 
