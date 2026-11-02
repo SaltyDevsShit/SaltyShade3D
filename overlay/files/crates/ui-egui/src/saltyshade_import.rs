@@ -564,6 +564,10 @@ mod native {
             // Engine inputs ($outputsize, $randomseed) have their own controls.
             let Some(gui) = gui.filter(|_| !id.starts_with('$')) else { continue };
             let ty: u32 = attr(el, "type").parse().unwrap_or(0);
+            // Image, text and font inputs (types 5-7) can't be set from here; the graph keeps its own.
+            if (5..=7).contains(&ty) {
+                continue;
+            }
             let default = numbers(&attr(el, "default"));
             let slider = elements(gui, "guislider").into_iter().next().unwrap_or("");
             let items = elements(gui, "guicomboboxitem").iter().map(|i| (attr(i, "value").parse().unwrap_or(0), attr(i, "text"))).collect();
@@ -749,14 +753,15 @@ mod native {
     }
 
     fn input_ui(ui: &mut egui::Ui, input: &mut Input) {
+        // Substance value types: 0-3 float1-4, 4 int, 8-10 int2-4.
         let n = match input.ty {
-            1 | 5 => 2,
-            2 | 6 => 3,
-            3 | 7 => 4,
+            1 | 8 => 2,
+            2 | 9 => 3,
+            3 | 10 => 4,
             _ => 1,
         };
         input.value.resize(n, 0.0);
-        let int = input.ty >= 4;
+        let int = input.ty == 4 || input.ty >= 8;
         ui.label(&input.label).on_hover_text(&input.id);
         ui.horizontal(|ui| {
             ui.spacing_mut().slider_width = 170.0;
@@ -844,7 +849,7 @@ mod native {
         ];
         for i in &sb.inputs {
             if i.value != i.default {
-                let int = i.ty >= 4;
+                let int = i.ty == 4 || i.ty >= 8;
                 let v: Vec<String> = i.value.iter().map(|x| if int { format!("{}", x.round() as i64) } else { format!("{x}") }).collect();
                 args.push("--set-value".into());
                 args.push(format!("{}@{}", i.id, v.join(",")));
