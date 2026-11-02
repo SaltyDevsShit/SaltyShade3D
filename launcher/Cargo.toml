@@ -1,0 +1,21 @@
+[package]
+name = "saltyshade-launcher"
+version = "1.0.0"
+edition = "2021"
+description = "SaltyShade 3D launcher: installs the newest release from GitHub, then starts the app"
+license = "MIT OR Apache-2.0"
+
+[[bin]]
+name = "SaltyShade3D-Launcher"
+path = "src/main.rs"
+
+[dependencies]
+serde_json = "1"
+
+[build-dependencies]
+winresource = "0.1"
+
+[profile.release]
+opt-level = "z"
+lto = true
+strip = true

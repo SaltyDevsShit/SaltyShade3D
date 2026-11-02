@@ -1,0 +1,118 @@
+{
+  "_about": "Your SaltyShade 3D design, re-applied to a fresh copy of upstream TextureCraft on every update. 'required' rules stop the update (the previous build keeps working) if upstream changed so much they no longer fit; the others are skipped with a warning. Each 'alternatives' entry is tried in order.",
+
+  "copy": [
+    { "from": "assets/icons/16.png",  "to": "assets/app-icon/hicolor/16x16/apps/ai.storyteller.texturecraft.png" },
+    { "from": "assets/icons/24.png",  "to": "assets/app-icon/hicolor/24x24/apps/ai.storyteller.texturecraft.png" },
+    { "from": "assets/icons/32.png",  "to": "assets/app-icon/hicolor/32x32/apps/ai.storyteller.texturecraft.png" },
+    { "from": "assets/icons/48.png",  "to": "assets/app-icon/hicolor/48x48/apps/ai.storyteller.texturecraft.png" },
+    { "from": "assets/icons/64.png",  "to": "assets/app-icon/hicolor/64x64/apps/ai.storyteller.texturecraft.png" },
+    { "from": "assets/icons/128.png", "to": "assets/app-icon/hicolor/128x128/apps/ai.storyteller.texturecraft.png" },
+    { "from": "assets/icons/256.png", "to": "assets/app-icon/hicolor/256x256/apps/ai.storyteller.texturecraft.png" },
+    { "from": "assets/icons/512.png", "to": "assets/app-icon/hicolor/512x512/apps/ai.storyteller.texturecraft.png" },
+    { "from": "assets/logo.png",      "to": "assets/app-icon/texturecraft-1024.png" },
+    { "from": "assets/saltyshade.ico","to": "assets/app-icon/texturecraft.ico" },
+    { "from": "assets/icons/256.png", "to": "crates/ui-egui/src/saltyshade_logo.png" }
+  ],
+
+  "rules": [
+    {
+      "desc": "Register the SaltyShade theme module",
+      "required": true,
+      "files": ["crates/ui-egui/src/lib.rs"],
+      "alternatives": [
+        { "find": "pub mod theme;", "replace": "pub mod theme;\npub mod saltyshade;" },
+        { "regex": true, "find": "(?m)^(pub mod \\w+;)$", "replace": "\\1\npub mod saltyshade;", "count": 1 }
+      ]
+    },
+    {
+      "desc": "Run the Neon Cyber-Studio theme after TextureCraft's own",
+      "required": true,
+      "files": ["crates/ui-egui/src/lib.rs"],
+      "alternatives": [
+        { "regex": true, "find": "(theme::apply\\((\\w+),[^;]*\\);)", "replace": "\\1\n            crate::saltyshade::apply(\\2);" }
+      ]
+    },
+    {
+      "desc": "Rename the product to SaltyShade 3D in user-facing text (string literals only)",
+      "type": "string_literals",
+      "find": "TextureCraft",
+      "replace": "SaltyShade 3D",
+      "files": [
+        "crates/ui-egui/src/**/*.rs",
+        "crates/core/src/lib.rs",
+        "apps/texturecraft/src/*.rs",
+        "apps/texturecraft/build.rs",
+        "apps/texturecraft-web/index.html"
+      ]
+    },
+    {
+      "desc": "Tidy the rename: 'SaltyShade 3D 3D texture painter' reads 'SaltyShade 3D texture painter'",
+      "files": ["apps/texturecraft/build.rs", "crates/ui-egui/src/**/*.rs"],
+      "alternatives": [
+        { "find": "SaltyShade 3D 3D ", "replace": "SaltyShade 3D " }
+      ]
+    },
+    {
+      "desc": "Neon viewport gizmo: axis colours",
+      "files": ["crates/ui-egui/src/viewport.rs"],
+      "all_alternatives": true,
+      "alternatives": [
+        { "find": "Color32::from_rgb(0xd8, 0x4a, 0x3a)", "replace": "crate::saltyshade::AXIS_X" },
+        { "find": "Color32::from_rgb(0x5c, 0xc0, 0x4a)", "replace": "crate::saltyshade::AXIS_Y" },
+        { "find": "Color32::from_rgb(0x4a, 0x80, 0xe0)", "replace": "crate::saltyshade::AXIS_Z" }
+      ]
+    },
+    {
+      "desc": "Neon viewport gizmo: glowing axes",
+      "files": ["crates/ui-egui/src/viewport.rs"],
+      "alternatives": [
+        { "regex": true, "find": "p\\.line_segment\\((\\[o, [^\\]]+\\]), Stroke::new\\(1\\.5, ([^)]+)\\)\\);", "replace": "crate::saltyshade::glow_line(p, \\1, \\2);" }
+      ]
+    },
+    {
+      "desc": "Viewport backdrop: violet smoke (#2a2040) at the top to obsidian (#100c1c) at the bottom, in the viewport, path tracer and CPU tracer alike",
+      "files": ["crates/render/src/shaders/post.wgsl", "crates/render/src/shaders/trace_post.wgsl", "crates/render/src/trace.rs"],
+      "all_alternatives": true,
+      "alternatives": [
+        { "find": "0.0295, 0.0343, 0.0437", "replace": "0.0232, 0.0144, 0.0513" },
+        { "find": "0.0110, 0.0130, 0.0168", "replace": "0.0052, 0.0037, 0.0116" }
+      ]
+    },
+    {
+      "desc": "Active tool: cyan icon and rim in the violet well, with a halo",
+      "files": ["crates/ui-egui/src/widgets.rs"],
+      "all_alternatives": true,
+      "alternatives": [
+        { "find": "selected: well(tk.tool_active, tk.text_strong),", "replace": "selected: ButtonVisuals { fill: tk.tool_active, stroke: Stroke::new(1.0, crate::saltyshade::CYAN), icon: crate::saltyshade::CYAN }," },
+        { "find": "        .show(ui, |ui, rect, color| {\n            ui.painter().text(rect.center(), egui::Align2::CENTER_CENTER, icon,", "replace": "        .show(ui, |ui, rect, color| {\n            if selected {\n                crate::saltyshade::glow_rect(ui.painter(), rect, 6.0, crate::saltyshade::VIOLET);\n            }\n            ui.painter().text(rect.center(), egui::Align2::CENTER_CENTER, icon," }
+      ]
+    },
+    {
+      "desc": "Layer masks: the mask shown in the viewport glows cyan, a selected mask glows violet",
+      "files": ["crates/ui-egui/src/dock.rs"],
+      "all_alternatives": true,
+      "alternatives": [
+        { "find": "p.rect_stroke(mask_rect.expand(2.0), 1.0, Stroke::new(1.5, tk.warning), egui::StrokeKind::Outside);", "replace": "crate::saltyshade::glow_rect(&p, mask_rect.expand(1.0), 1.0, crate::saltyshade::CYAN);" },
+        { "regex": true, "find": "(Stroke::new\\(if mask_sel \\{ 1\\.5 \\} else \\{ 1\\.0 \\}, if mask_sel \\{ )tk\\.accent( \\} else)", "replace": "\\1crate::saltyshade::VIOLET\\2" }
+      ]
+    },
+    {
+      "desc": "About window: show the SaltyShade 3D logo",
+      "files": ["crates/ui-egui/src/windows.rs"],
+      "alternatives": [
+        { "regex": true, "find": "(fn about\\([^{]*\\{[\\s\\S]*?ui\\.vertical_centered\\(\\|ui\\| \\{)", "replace": "\\1\n            crate::saltyshade::logo(ui, 112.0);", "count": 1 }
+      ]
+    },
+    {
+      "desc": "About window: credit the upstream project",
+      "files": ["crates/ui-egui/src/windows.rs"],
+      "all_alternatives": true,
+      "alternatives": [
+        { "find": "ui.hyperlink_to(tr(\"Join the ArtCraft community on Discord\"), \"https://discord.gg/artcraft\");", "replace": "ui.hyperlink_to(\"Based on TextureCraft (open source)\", \"https://github.com/storytold/texturecraft\");" },
+        { "find": "ui.hyperlink_to(\"getartcraft.com/apps/texturecraft\", \"https://getartcraft.com/apps/texturecraft\");", "replace": "" },
+        { "find": "RichText::new(tr(\"Made by the ArtCraft team and community.\"))", "replace": "RichText::new(\"SaltyShade 3D theme and branding on top of TextureCraft by the ArtCraft team and community.\")" }
+      ]
+    }
+  ]
+}

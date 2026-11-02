@@ -1,0 +1,112 @@
+# Builds SaltyShade 3D (newest TextureCraft + your overlay) and publishes an installer release.
+# Installed copies find it through their launcher and update themselves.
+#
+# Runs daily, when you push a design change, or by hand (Actions > Release > Run workflow).
+# A scheduled run publishes only if TextureCraft or your design changed since the last release.
+
+name: Release
+
+on:
+  schedule:
+    - cron: "17 5 * * *"
+  push:
+    branches: [main]
+    paths: ["overlay/**", "tools/**", "launcher/**", "installer/**", ".github/workflows/release.yml"]
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Publish even if nothing changed"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    env:
+      UPSTREAM: https://github.com/storytold/texturecraft
+      CARGO_TARGET_DIR: C:\t
+      GH_TOKEN: ${{ github.token }}
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Anything new?
+        id: check
+        run: |
+          $sha = ((git ls-remote $env:UPSTREAM refs/heads/main) -split '\s+')[0]
+          $design = git log -1 --format=%H -- overlay tools launcher installer .github/workflows/release.yml
+          $key = "build-key: $sha/$design"
+          $last = gh release view --json body --jq .body 2>$null
+          $skip = ("${{ github.event_name }}" -eq 'schedule') -and ($last -match [regex]::Escape($key))
+          "sha=$sha"   >> $env:GITHUB_OUTPUT
+          "key=$key"   >> $env:GITHUB_OUTPUT
+          "skip=$($skip.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          if ($skip) { "Nothing changed since the last release." }
+          # `gh release view` fails before the first release; that is not an error here.
+          exit 0
+
+      - name: Fetch TextureCraft
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          git init upstream
+          git -C upstream fetch --depth 1 $env:UPSTREAM ${{ steps.check.outputs.sha }}
+          git -C upstream checkout --quiet FETCH_HEAD
+
+      - name: Apply the SaltyShade overlay
+        if: steps.check.outputs.skip != 'true'
+        run: python tools/apply_overlay.py upstream
+
+      - name: Rust toolchain
+        if: steps.check.outputs.skip != 'true'
+        run: rustup toolchain install stable --profile minimal && rustup default stable
+
+      - name: Build cache
+        if: steps.check.outputs.skip != 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            C:\t
+          key: saltyshade-${{ hashFiles('upstream/Cargo.lock') }}
+          restore-keys: saltyshade-
+
+      - name: Build SaltyShade 3D
+        if: steps.check.outputs.skip != 'true'
+        working-directory: upstream
+        run: cargo build --release --locked -p texturecraft
+
+      - name: Inno Setup
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
+
+      - name: Make the installer
+        if: steps.check.outputs.skip != 'true'
+        id: pack
+        run: ./tools/make_installer.ps1 -AppExe C:\t\release\texturecraft.exe -Repo "${{ github.repository }}"
+
+      - name: Publish the release
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          $v = "${{ steps.pack.outputs.version }}"
+          $notes = @"
+          SaltyShade 3D $v: TextureCraft ``$("${{ steps.check.outputs.sha }}".Substring(0,7))`` with the SaltyShade 3D design.
+
+          **New here?** Download ``SaltyShade3D-$v-Setup.exe`` below and run it. Already installed? It updates itself the next time you open it.
+
+          <!-- ${{ steps.check.outputs.key }} -->
+          "@
+          gh release create "v$v" "${{ steps.pack.outputs.setup }}" --title "SaltyShade 3D $v" --notes $notes --latest
